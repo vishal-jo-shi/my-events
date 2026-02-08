@@ -76,7 +76,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="text-secondary">
+    <nav className="sticky top-0 z-50 text-secondary bg-background/80 backdrop-blur border-b border-border">
       <div className="max-w-7xl mx-auto px-4">
         <div className="flex h-16 items-center justify-between">
 

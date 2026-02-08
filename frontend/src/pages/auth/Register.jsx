@@ -27,7 +27,8 @@ export default function Register() {
   e.preventDefault();
 
   const payload = {
-    name: `${firstName.trim()} ${lastName.trim()}`,
+    firstName: firstName.trim(),
+    lastName:lastName.trim(),
     userName: userName.trim(),
     email: email.trim().toLowerCase(),
     password,

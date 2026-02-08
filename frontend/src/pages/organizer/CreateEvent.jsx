@@ -1,205 +1,204 @@
 import { useState } from "react";
+import { padToAspectRatio } from "../../utils/imageUtils";
+import ImageCropModal from "../../components/ImageCropModal";
 
 export default function CreateEvent() {
-  const [startDate, setStartDate] = useState("");
-  const [startTime, setStartTime] = useState("");
-  const [endDate, setEndDate] = useState("");
-  const [endTime, setEndTime] = useState("");
+  /* ================= DETAILS ================= */
+  const [title, setTitle] = useState("");
+  const [shortDesc, setShortDesc] = useState("");
+  const [fullDesc, setFullDesc] = useState("");
 
-  const [maxCapacity, setMaxCapacity] = useState("");
-  const [ticketPrice, setTicketPrice] = useState(0);
-  const [currency, setCurrency] = useState("USD");
+  /* ================= MEDIA ================= */
+  const [media, setMedia] = useState([]);
+  const [cropImg, setCropImg] = useState(null);
+  const [cropAspect, setCropAspect] = useState(null);
+  const [cropIndex, setCropIndex] = useState(null);
 
-  const [regDeadlineDate, setRegDeadlineDate] = useState("");
-  const [regDeadlineTime, setRegDeadlineTime] = useState("");
+  /* ================= SCHEDULE ================= */
+  const [eventDate, setEventDate] = useState("");
+  const [agreeTerms, setAgreeTerms] = useState(false);
 
-  const [status, setStatus] = useState("Draft");
+  const preview = (file) => URL.createObjectURL(file);
+  const validateSize = (file, maxMB) =>
+    file.size / (1024 * 1024) <= maxMB;
 
-  const getMeridiem = (time) => {
-    if (!time) return "";
-    const hour = parseInt(time.split(":")[0], 10);
-    return hour >= 12 ? "PM" : "AM";
+  /* ================= MEDIA UPLOAD ================= */
+  const uploadMedia = async (file, index, aspect, maxMB) => {
+    if (!validateSize(file, maxMB)) {
+      alert(`Max ${maxMB}MB allowed`);
+      return;
+    }
+    const normalized = await padToAspectRatio(file, aspect);
+    setMedia((prev) => {
+      const copy = [...prev];
+      copy[index] = normalized;
+      return copy;
+    });
+  };
+
+  const uploadGallery = async (files) => {
+    const list = [];
+    for (let f of files) {
+      if (list.length + media.length >= 7) break;
+      if (!validateSize(f, 4)) continue;
+      list.push(await padToAspectRatio(f, 4 / 5));
+    }
+    setMedia((prev) => [...prev, ...list]);
+  };
+
+  /* ================= CROP ================= */
+  const handleCropDone = async (file) => {
+    const aspect =
+      cropIndex === 0 ? 1 :
+      cropIndex === 1 ? 1.91 :
+      4 / 5;
+
+    const normalized = await padToAspectRatio(file, aspect);
+    setMedia((prev) => {
+      const copy = [...prev];
+      copy[cropIndex] = normalized;
+      return copy;
+    });
+
+    setCropImg(null);
+    setCropIndex(null);
+    setCropAspect(null);
+  };
+
+  /* ================= SUBMIT ================= */
+  const handleSubmit = () => {
+    if (!agreeTerms) return alert("Accept terms");
+    console.log({ title, shortDesc, fullDesc, media, eventDate });
+    alert("Event Created (check console)");
   };
 
   return (
     <>
-      <h1 className="text-2xl font-bold text-textMain mb-6">
+      <h1 className="text-3xl font-bold mb-8">Create Event</h1>
+
+      {/* ================= DETAILS ================= */}
+      <section className="bg-card border rounded-xl p-6 mb-8 space-y-4">
+        <h2 className="font-semibold text-lg">Event Details</h2>
+        <input className="input" placeholder="Title" value={title}
+          onChange={(e) => setTitle(e.target.value)} />
+        <textarea className="input" placeholder="Short Description"
+          value={shortDesc} onChange={(e) => setShortDesc(e.target.value)} />
+        <textarea className="input" placeholder="Full Description"
+          value={fullDesc} onChange={(e) => setFullDesc(e.target.value)} />
+      </section>
+
+      {/* ================= MEDIA ================= */}
+      <section className="bg-card border rounded-xl p-6 mb-8 space-y-6">
+        <h2 className="font-semibold text-lg">Media & Branding</h2>
+
+        {/* Thumbnail + Banner */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Thumbnail */}
+          <div>
+            <label className="label">Thumbnail (1:1)</label>
+            <div className="relative aspect-square border rounded overflow-hidden">
+              {media[0] ? (
+                <>
+                  <button
+                    className="absolute top-1 right-1 bg-blue-500 text-white p-1 rounded z-10"
+                    onClick={() => {
+                      setCropImg(preview(media[0]));
+                      setCropAspect(1);
+                      setCropIndex(0);
+                    }}
+                  >✂</button>
+                  <img src={preview(media[0])} className="w-full h-full object-cover" />
+                </>
+              ) : (
+                <label className="flex h-full items-center justify-center cursor-pointer">
+                  Upload
+                  <input hidden type="file" accept="image/*"
+                    onChange={(e) => uploadMedia(e.target.files[0], 0, 1, 2)} />
+                </label>
+              )}
+            </div>
+          </div>
+
+          {/* Banner */}
+          <div className="md:col-span-2">
+            <label className="label">Banner (1.91:1)</label>
+            <div className="relative aspect-[1.91/1] border rounded overflow-hidden">
+              {media[1] ? (
+                <>
+                  <button
+                    className="absolute top-1 right-1 bg-blue-500 text-white p-1 rounded z-10"
+                    onClick={() => {
+                      setCropImg(preview(media[1]));
+                      setCropAspect(1.91);
+                      setCropIndex(1);
+                    }}
+                  >✂</button>
+                  <img src={preview(media[1])} className="w-full h-full object-cover" />
+                </>
+              ) : (
+                <label className="flex h-full items-center justify-center cursor-pointer">
+                  Upload
+                  <input hidden type="file" accept="image/*"
+                    onChange={(e) => uploadMedia(e.target.files[0], 1, 1.91, 4)} />
+                </label>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Gallery */}
+        <div>
+          <label className="label">Gallery (4:5)</label>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2">
+            {media.slice(2).map((img, i) => (
+              <div key={i} className="relative aspect-[4/5] border rounded overflow-hidden">
+                <button
+                  className="absolute top-1 right-1 bg-blue-500 text-white p-1 rounded z-10"
+                  onClick={() => {
+                    setCropImg(preview(img));
+                    setCropAspect(4 / 5);
+                    setCropIndex(i + 2);
+                  }}
+                >✂</button>
+                <img src={preview(img)} className="w-full h-full object-cover" />
+              </div>
+            ))}
+
+            {media.length < 7 && (
+              <label className="aspect-[4/5] border rounded flex items-center justify-center cursor-pointer">
+                +
+                <input hidden multiple type="file" accept="image/*"
+                  onChange={(e) => uploadGallery(e.target.files)} />
+              </label>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {/* ================= SCHEDULE ================= */}
+      <section className="bg-card border rounded-xl p-6 mb-8 space-y-4">
+        <h2 className="font-semibold text-lg">Schedule</h2>
+        <input type="date" className="input"
+          value={eventDate} onChange={(e) => setEventDate(e.target.value)} />
+        <label className="flex gap-2 text-sm">
+          <input type="checkbox" checked={agreeTerms}
+            onChange={(e) => setAgreeTerms(e.target.checked)} />
+          Accept Terms & Conditions
+        </label>
+      </section>
+
+      <button className="btn-primary w-full md:w-auto" onClick={handleSubmit}>
         Create Event
-      </h1>
+      </button>
 
-      <form className="space-y-6 max-w-2xl">
-
-        {/* Event Title */}
-        <div>
-          <label className="label">Event Title</label>
-          <input className="input" placeholder="Event title" />
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="label">Description</label>
-          <textarea
-            className="input min-h-[120px]"
-            placeholder="Event description"
-          />
-        </div>
-
-        {/* Date & Time */}
-        <div>
-          <label className="label">Event Date & Time</label>
-        </div>
-
-        {/* Start Date & Time */}
-        <div className="ml-4 grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="label">Start Date</label>
-            <input
-              type="date"
-              className="input"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="label">Start Time</label>
-            <div className="relative">
-              <input
-                type="time"
-                className="input pr-14"
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-              />
-              {startTime && (
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-textMuted">
-                  {getMeridiem(startTime)}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* End Date & Time */}
-        <div className="ml-4 grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-          <div>
-            <label className="label">End Date</label>
-            <input
-              type="date"
-              className="input"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-
-          <div>
-            <label className="label">End Time</label>
-            <div className="relative">
-              <input
-                type="time"
-                className="input pr-14"
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-              />
-              {endTime && (
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium text-textMuted">
-                  {getMeridiem(endTime)}
-                </span>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Location */}
-        <div>
-          <label className="label">Location</label>
-          <input className="input" placeholder="City / Venue" />
-        </div>
-
-        {/* Capacity */}
-        <div>
-          <label className="label">Max Capacity</label>
-          <input
-            type="number"
-            className="input"
-            min="1"
-            placeholder="Total tickets available"
-            value={maxCapacity}
-            onChange={(e) => setMaxCapacity(e.target.value)}
-          />
-        </div>
-        
-        {/* Ticket Price */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="sm:col-span-2">
-            <label className="label">Ticket Price</label>
-            <input
-              type="number"
-              className="input"
-              min="0"
-              value={ticketPrice}
-              onChange={(e) => setTicketPrice(e.target.value)}
-              placeholder="0 for free"
-            />
-          </div>
-
-          <div>
-            <label className="label">Currency</label>
-            <select
-              className="input"
-              value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-            >
-              <option>USD</option>
-              <option>EUR</option>
-              <option>INR</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Registration Deadline */}
-        <div>
-          <label className="label">Registration Deadline</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <input
-              type="date"
-              className="input"
-              value={regDeadlineDate}
-              onChange={(e) => setRegDeadlineDate(e.target.value)}
-            />
-            <input
-              type="time"
-              className="input"
-              value={regDeadlineTime}
-              onChange={(e) => setRegDeadlineTime(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Status */}
-        <div>
-          <label className="label">Event Status</label>
-          <select
-            className="input"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          >
-            <option>Draft</option>
-            <option>Published</option>
-            <option>Sold Out</option>
-            <option>Cancelled</option>
-            <option>Completed</option>
-          </select>
-        </div>
-
-        {/* Submit */}
-        <button
-          type="submit"
-          className="bg-primary-500 hover:bg-primary-600
-          text-white px-6 py-3 rounded-lg font-medium transition"
-        >
-          Create Event
-        </button>
-      </form>
+      {cropImg && (
+        <ImageCropModal
+          image={cropImg}
+          aspect={cropAspect}
+          onCancel={() => setCropImg(null)}
+          onComplete={handleCropDone}
+        />
+      )}
     </>
   );
 }

@@ -1,6 +1,8 @@
-import app from "./app.js";
-import { loadEnv } from "./config/env.config.js";
-import {connectDB} from "./config/db.config.js";
+import dotenv from "dotenv";
+dotenv.config(); // 🔥 MUST be first
+import app from "./src/app.js";
+import { loadEnv } from "./src/config/env.config.js";
+import {connectDB} from "./src/config/db.config.js";
 
 /* Start server */
 const startServer = async () => {

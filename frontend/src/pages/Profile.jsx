@@ -1,18 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect} from "react";
 import { logoutUser } from "../features/auth/authThunks";
-import { useDispatch } from "react-redux";
+import { getMyProfile } from "../features/user/userThunks";
+import { clearUserState } from "../features/user/userSlice";
+import { useDispatch, useSelector} from "react-redux";
 import { useNavigate } from "react-router-dom";
+
 
 export default function Profile() {
   const [isEditing, setIsEditing] = useState(false);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  useEffect(() => {
+  dispatch(getMyProfile());
+  }, []);
 
-  const handleSubmit = async (e) => {
+  const profile = useSelector((state) => state.user.profile);
+  console.log("profile:",profile)
+  const handleLogout = async (e) => {
   e.preventDefault();
-
   try {
     await dispatch(logoutUser()).unwrap();
+          dispatch(clearUserState());
     navigate("/");
   } catch (err) {
     console.error("Logout failed:", err);
@@ -34,18 +42,21 @@ export default function Profile() {
 
               <div>
                 <h1 className="text-3xl font-bold text-textMain">
-                  User Name
+                  {profile?.userName}
                 </h1>
                 <p className="text-textMuted">
-                  user@email.com
+                  {profile?.email}
                 </p>
 
                 <div className="flex gap-3 mt-2 text-sm">
                   <span className="px-3 py-1 rounded-full bg-primary-50 text-primary-600">
-                    User
+                    {profile?.role}
                   </span>
                   <span className="px-3 py-1 rounded-full bg-background-100 text-textMuted">
-                    Joined Jan 2025
+                    Joined {new Date(profile?.createdAt).toLocaleString("en-US", {
+                      month: "short",
+                      year: "numeric",
+                    })}
                   </span>
                 </div>
               </div>
@@ -74,10 +85,10 @@ export default function Profile() {
                 </h2>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
-                  <Info label="First Name" value="User" />
-                  <Info label="Last Name" value="Name" />
-                  <Info label="Email" value="user@email.com" />
-                  <Info label="Role" value="User" />
+                  <Info label="First Name" value={profile?.firstName} />
+                  <Info label="Last Name" value={profile?.lastName} />
+                  <Info label="Email" value={profile?.email} />
+                  <Info label="Role" value={profile?.role} />
                 </div>
               </div>
             )}
@@ -182,7 +193,7 @@ export default function Profile() {
                   Change Password
                 </button>
 
-                <button className="w-full border border-border py-2 rounded-lg text-red-600 hover:bg-red-50" onClick={handleSubmit}>
+                <button className="w-full border border-border py-2 rounded-lg text-red-600 hover:bg-red-50" onClick={handleLogout}>
                   Logout
                 </button>
               </div>
